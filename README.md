@@ -8,7 +8,9 @@ Angular 1.4 is used on the front end
 
 ## How to run
 
-Clone the Repo and run 
+Clone the Repo 
+
+npm install
 
 node app.js
 
