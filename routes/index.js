@@ -1,5 +1,6 @@
 module.exports = function(app, addon) {
     var request = require("request");
+    var routeConfig = require('../controller/apiController')
     // Root route. This route will serve the `atlassian-connect.json` unless the
     // documentation url inside `atlassian-connect.json` is set
     app.get('/', function(req, res) {
@@ -19,64 +20,17 @@ module.exports = function(app, addon) {
     // This is an example route that's used by the default "generalPage" module.
     // Verify that the incoming request is authenticated with Atlassian Connect
     app.get('/webPanel', addon.authenticate(), function(req, res) {
-        res.render('webPanel', {
-            title: 'Atlassian Connect'
-        });
+        res.render('webPanel', {});
     });
 
+    //route for API logic 
     app.post('/spirateam', function(req, res) {
-        // setting up a post request containing the name of the JIRA issue in the body 
-        var options1 = {
-            method: 'POST',
-            url: req.body.url,
-            headers: {
-                'content-type': 'application/json',
-                authorization: 'Basic ' + req.body.encoded
-            },
-            body: req.body.data,
-            json: true
-        };
-        
-        //request is sent 
-        request(options1, function(error, response, body) {
-            if (error) throw new Error(error);
-
-            console.log(typeof response.body)
-        //if response body is empty, we end the response here 
-            if (response.body == '[]' || JSON.stringify(response.body) == '[]') {
-                
-               res.end()
-            }
-        //if its not empty, we prepare a GET request that uses the artifact id of the last response 
-            else {
-                var requirement = response.body[0].ArtifactIds[0];
-
-                var options2 = {
-                    method: 'GET',
-                    url: req.body.reqUrl + requirement,
-                    headers: {
-                        'content-type': 'application/json',
-                        authorization: 'Basic ' + req.body.encoded
-                    },
-                    json: true
-                };
-                
-                
-        //SpiraTeam requirement details are sent back to the browser in JSON
-                request(options2, function(error, response, body) {
-                    if (error) throw new Error(error);
-                    res.json(response.body);
-                });
-            }
-        });
+        routeConfig(req,res)
     });
-
-
+    
+    //route to project config template
     app.get('/config', function(req, res) {
-        res.render('config', {
-            title: 'Atlassian Connect'
-                //issueId: req.query['issueId']
-        });
+        res.render('config', {});
     });
 
 
