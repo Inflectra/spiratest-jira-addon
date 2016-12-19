@@ -14,20 +14,22 @@ module.exports = function(req, res) {
 
 
     function getSpiraInfo(response) {
-        
-        console.log(apiOptions.getoptions(req,response))
-        
-        rp(apiOptions.getoptions(req,response))
-            .then(function(data) {
-                console.log(data)
-                res.json(data);
-            })
-            .catch(function(err) {
-               console.log(err)
-            });
+
+        //if response body is empty, we end the response here 
+        if (JSON.stringify(response) == '[]') {
+            res.send('There is no matching requirement in Spirateam')
+        }
+
+        else {
+            rp(apiOptions.getoptions(req, response))
+                .then(function(data) {
+                    console.log(data)
+                    res.json(data);
+                })
+                .catch(function(err) {
+                    console.log(err)
+                });
+        }
 
     }
-
-
-
 }

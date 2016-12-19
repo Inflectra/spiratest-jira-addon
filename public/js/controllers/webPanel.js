@@ -33,7 +33,9 @@ angular.module('WebPanelController', []).controller('WebPanelController', functi
                     var requestdata = object.objectmaker(response,$scope.issueKey)
                    
                     poster.postmaker($http, requestdata).then(function successCallback(response) {
-                    $scope.data = datasetter.set(response)}, function errorCallback(response) {return response});
+                    $scope.data = datasetter.set(response)}, function errorCallback(response) {
+                        console.log(response)
+                        return response});
                 }
             });
         });
