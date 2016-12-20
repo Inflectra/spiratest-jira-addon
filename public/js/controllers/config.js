@@ -1,65 +1,31 @@
-// Define the `spiraDisplayApp` module
-var spiraDisplayApp = angular.module('spiraDisplayApp', ['ngRoute']);
+angular.module('ConfigController', []).controller('ConfigController', function ConfigController($scope, $window, $http, $location, requestURL) {
 
-// Define the `PhoneListController` controller on the `spiraDisplayApp` module
-spiraDisplayApp.controller('ConfigController', function ConfigController($scope, $window, $http, $route, $location) {
 
-    //base URL: https://femidev.atlassian.net
+//FORM POPULATION OPERATIONS 
     var baseUrl = $window.base;
-
-    //JIRA current project - FEM
     $scope.projectKey;
-
-    //Atlassian object: Makes iframe responsive
     AP.resize();
-
-    //Atlassian object: decode query string to get JIRA project key
+ 
+   /*
+   Within callback:
+   1) Create url used to request Config data
+   2) Set $scope.projectKey from url query string
+   */ 
     AP.require(["_util", 'request'], function(util, request) {
-        var hostString = util.decodeQueryComponent(window.location.href);
-        var qs = URI(hostString).query(true);
-        $scope.projectKey = qs['projectKey'];
-        var url = baseUrl + '/rest/api/latest/project/' + $scope.projectKey + '/properties/spira';
-        //Atlassian object: Request Spirateam data stored in JIRA
+        var response = requestURL.makeURL(util, request, $scope.projectKey, baseUrl)
+        var url = response.url
+        $scope.projectKey = response.projectKey
         populateFields(url, request);
-
     });
 
-    //form submission function
-    $scope.submit = function() {
-
-        //prepare object for form submission
-        var submission = {
-            spiraURL: $scope.spiraURL,
-            username: $scope.username,
-            apiKey: $scope.apiKey,
-            projectID: $scope.projectID,
-            dataMappingID: $scope.dataMappingID
-        }
-
-        //turn submission data into json format
-        submission = angular.toJson(submission, true);
-
-        //submits and updates configuration data. Page refreshes on update sucsess 
-        AP.require('request', function(request) {
-            request({
-                url: baseUrl + '/rest/api/latest/project/' + $scope.projectKey + '/properties/spira',
-                type: 'PUT',
-                contentType: "application/json",
-                data: submission,
-                success: function(responseText) {
-                    location.reload();
-                },
-                error: function(responseText) {
-                    alert('error');
-                    console.log(responseText.responseText)
-                }
-            });
-        });
-    }
-
+  /*
+   Within function:
+   1) GET request Config data
+   2) populate form fields on succsess 
+   */ 
     function populateFields(url, request) {
         request({
-            url: baseUrl + '/rest/api/latest/project/' + $scope.projectKey + '/properties/spira',
+            url: url,
             success: function(response) {
                 response = JSON.parse(response);
                 $scope.spiraURL = response.value.spiraURL
@@ -72,5 +38,45 @@ spiraDisplayApp.controller('ConfigController', function ConfigController($scope,
             contentType: "application/json"
         });
     }
+//END OF FORM POPULATION OPERATIONS 
 
+
+
+//FORM SUBMISSION OPERATIONS 
+
+    //Sets up form data for submission, then passed data to "update" function
+    $scope.submit = function() {
+        var submission = {
+            spiraURL: $scope.spiraURL,
+            username: $scope.username,
+            apiKey: $scope.apiKey,
+            projectID: $scope.projectID,
+            dataMappingID: $scope.dataMappingID
+        }
+        submission = angular.toJson(submission, true);
+
+        AP.require('request', function(request) {
+            update(request, submission)
+        });
+    }
+
+    //makes put request to update config data
+    function update(request, submission) {
+        request({
+            url: baseUrl + '/rest/api/latest/project/' + $scope.projectKey + '/properties/spira',
+            type: 'PUT',
+            contentType: "application/json",
+            data: submission,
+            success: function(responseText) {
+                location.reload();
+            },
+            error: function(responseText) {
+                alert('error');
+                console.log('ERROR TEXT')
+                console.log(responseText.responseText)
+            }
+        });
+    }
+    
+//END OF FORM SUBMISSION OPERATIONS 
 });
