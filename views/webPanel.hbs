@@ -1,21 +1,38 @@
 {{!< layout}}
 <div ng-controller="WebPanelController">
-<header class="aui-page-header">
-  
-</header>
+        <header class="aui-page-header">
+
+        </header>
+
+        <div class="aui-group">
+
+                <div class="aui-item">
+
+                        <canvas 
+                        style="height:150px;width:150px;"
+                        class="chart chart-pie" 
+                        chart-data="data"
+                        chart-labels="labels"
+                        chart-series="series"
+                        chart-dataset-override="datasetOverride"
+                        chart-colors="colors"></canvas>
+                </div>
+
+                <div ng-model="data" class="aui-item">
+                        <p>Failed: {[{data[0]}]}</p>
+                       <p>Passed: {[{data[1]}]}</p>
+                        <p>Not Run: {[{data[2]}]}</p>
+                        <p>Blocked: {[{data[3]}]}</p>
+                        
+                </div>
+
+        </div>
 
 
-        <canvas style="height:150px;width:150px;"
-        
-        class="chart chart-pie"
-        chart-data="data" 
-        chart-labels="labels"
-        chart-series="series" 
-        chart-dataset-override="datasetOverride"
-        chart-colors="colors">
-        </canvas> 
-       
- 
+
+
+
+
 </div>
 
 
