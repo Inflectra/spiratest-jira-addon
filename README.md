@@ -26,6 +26,7 @@ Jira provides some [useful information](https://developer.atlassian.com/static/c
 - run `npm install` from the repo folder on your local machine
 - `node app.js`
 - This will run ngrok to expose the web server running on your local enviroment, which allows you to upload your atlassian-connect.json file when running a developerinstance of JIRA Cloud.
+- to get the right address to use for jira run `ngrok http 8080` from the command line (8080 is the current port from the server)
 - See [Jira documentation for running local code and linking to Jira Cloud](https://developer.atlassian.com/static/connect/docs/latest/developing/developing-locally.html) - make sure to change the values for the URL in the atlassian-connect.json file to all match the ngrok url
 - upload the ngrok url to your Jira instance - make sure ngrok can pass through your firewall first.
 
