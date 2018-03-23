@@ -1,78 +1,35 @@
 {
-    "key": "SpiraTeam-WebPanel",
-    "name": "Ping Pong",
-    "description": "My very first add-on",
+    "key": "spiratest",
+    "name": "SpiraTest Add-on for Jira",
+    "description": "Connect SpiraTest to Jira to easily see test coverage for all user stories from Jira",
     "vendor": {
-        "name": "Angry Nerds",
-        "url": "https://www.atlassian.com/angrynerds"
+        "name": "Inflectra Corporation",
+        "url": "https://www.inflectra.com"
     },
-    "baseUrl": "{{localBaseUrl}}",
-    "links": {
-        "self": "{{localBaseUrl}}/atlassian-connect.json",
-        "homepage": "{{localBaseUrl}}/atlassian-connect.json"
-    },
+    "baseUrl": "https://jira.inflectra.com/spiratest/",
     "authentication": {
-        "type": "jwt"
-    },
-    "lifecycle": {
-        "installed": "/installed"
+        "type": "none"
     },
     "scopes": [
-        "read", "write","delete"
+        "read", "write"
     ],
     "modules": {
-        "generalPages": [
-            {
-                "key": "hello-world-page-jira",
-                "location": "system.top.navigation.bar",
-                "name": {
-                    "value": "Hello World"
-                },
-                "url": "/hello-world",
-                "conditions": [{
-                    "condition": "user_is_logged_in"
-                }]
-            },
-            {
-                "key": "hello-world-page-confluence",
-                "location": "system.header/left",
-                "name": {
-                    "value": "Hello World"
-                },
-                "url": "/hello-world?issueKey={issue.key}",
-                "conditions": [{
-                    "condition": "user_is_logged_in"
-            }]
-        }],
+        "configurePage": {
+            "url": "/spiratest-configure.html",
+            "key": "config-page",
+            "name": {
+              "value": "SpiraTest Configure Page"
+            }
+        },
         "webPanels": [
-      {
-        "url": "/webPanel?issueKey={issue.key}&projectKey={project.key}",
-        "location": "atl.jira.view.issue.right.context",
-        "layout": {
-          "width": "10px",
-          "height": "100%"
-        },
-        "weight": 50,
-        "name": {
-          "value": "SpiraTeam Test Coverage"
-        },
-        "key": "my-web-panel"
-      }
-    ],
-    "jiraProjectAdminTabPanels": [
             {
-                "location": "projectgroup2",
-                "url": "/config?projectKey={project.key}",
-                "weight": 100,
+                "url": "/spiratest-test-coverage-panel.html?issueKey={issue.key}&projectKey={project.key}",
+                "location": "atl.jira.view.issue.right.context",
+                "weight": 50,
                 "name": {
-                    "value": "SpiraTeam API Access"
+                    "value": "SpiraTest Test Coverage"
                 },
-                "key": "spira-team-project-settings",
-                "params":{
-                    "baseURL": "1",
-                    "username": "2",
-                    "apiKey":"3"
-                }
+                "key": "test-coverage"
             }
         ]
     }
