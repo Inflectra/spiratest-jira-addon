@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+    <link rel="stylesheet" href="//aui-cdn.atlassian.com/aui-adg/5.9.12/css/aui.min.css" media="all">
+ </head>
+ <body style="background: white; overflow: hidden">
+    <section id="content" class="ac-content">
+        <template v-if="showData">
+            <a
+                class="aui-lozenge spira-coverage"
+                v-bind:href="linkToSpiraArtifact"
+                v-if="total"
+                >
+                <span v-if="passed"  v-bind:style="{ width: (passed  / total * 100) + '%', backgroundColor: '#7eff7a' }"></span>
+                <span v-if="failed"  v-bind:style="{ width: (failed  / total * 100) + '%', backgroundColor: '#f47457' }"></span>
+                <span v-if="caution" v-bind:style="{ width: (caution / total * 100) + '%', backgroundColor: '#f29e56' }"></span>
+                <span v-if="blocked" v-bind:style="{ width: (blocked / total * 100) + '%', backgroundColor: '#f4f356' }"></span>
+
+            </a>
+            <p class="spira-coverage-tooltip">
+                {{total}} Tests: 
+                <span v-if="passed">{{passed}} ({{Math.round(passed /total * 100)}}%) passed. </span>
+                <span v-if="failed">{{failed}} ({{Math.round(failed /total * 100)}}%) failed. </span>
+                <span v-if="caution">{{caution}} ({{Math.round(caution /total * 100)}}%) caution. </span>
+                <span v-if="blocked">{{blocked}} ({{Math.round(blocked /total * 100)}}%) blocked.</span>
+            </p>
+        </template>
+        <template v-if="message">
+            <div v-bind:class="[messageClasses]">
+                <p>{{message}}</p>
+            </div>
+        </template>
+    </section>
+
+
+
+    <style>
+        .spira-coverage {
+            background: f4f5f7;
+            border: 0; 
+            display: flex; 
+            height: 1.5em; 
+            margin: 4px 8px; 
+            overflow: hidden; 
+            padding: 0; 
+        }
+        .spira-coverage-tooltip {
+            font-size: .8em;
+            margin: 0;
+            opacity: 0;
+            padding: 0 8px;
+            transition: all .2s;
+        }
+        .spira-coverage:hover + .spira-coverage-tooltip,
+        .spira-coverage-tooltip:hover {
+            opacity: .6;
+        }
+
+        .spira-message-subtle {
+            font-style: italic;
+            opacity: .6;
+        }
+    </style>
+
+
+
+    <!-- load the vue and axios library - latter used to perform Ajax calls. -->
+    <script src="https://cdn.jsdelivr.net/npm/vue"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+
+
+
+    <script id="connect-loader">
+        (function() {
+            // loads up the Atlassian core JS (all.js)
+            function getUrlParameter(name) {
+                name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+                var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+                var results = regex.exec(location.search);
+                return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+            };
+            var baseUrl = getUrlParameter('xdm_e') + getUrlParameter('cp');
+            var options = document.getElementById('connect-loader').getAttribute('data-options');
+
+            var script = document.createElement("script");
+            script.src = baseUrl + '/atlassian-connect/all.js';
+
+            if(options) {
+                script.setAttribute('data-options', options);
+            }
+            script.onreadystatechange = function () {
+                if (this.readyState == 'complete') {
+                    main();
+                }
+            };
+            script.onload = main;
+            document.getElementsByTagName("head")[0].appendChild(script);
+
+
+
+
+
+            // page specific js logic
+            function main() {
+                // set up the vue model and link it to the main content of the panel
+                var app = new Vue({
+                    el: '#content',
+                    data: {
+                        blocked: 0,
+                        caution: 0,
+                        failed: 0,
+                        passed: 0,
+                        total: 0,
+                        linkToSpiraArtifact: "",
+                        showData: false,
+                        message: "",
+                        messageClasses: []
+                    }
+                });
+
+
+
+                //Getting project and issue key params from host URL query string
+                var issueKey = getUrlParameter("issueKey");
+                var projectKey = getUrlParameter("projectKey");
+                
+                //get stored SpiraTest API Acsess settings from JIRA
+                var connectionSettings = false;
+
+                // AP.request is an Atlassian function, which is part of the all.js library referenced above
+                // here we are using it for ajax calls. It handles authentication and cross iframe data management for us
+                // if addon likely has details to connect to Spira, kick off process to find relevant remote links and test coverage
+                AP.request({
+                    // here we are GETting an addon specific blob from Jira. "spiratest" is the key used to define this addon. "connectionSettings" is the arbitrary name we're using to define the information we save / access
+                    url: '/rest/atlassian-connect/1/addons/spiratest/properties/connectionSettings',
+                    success: function(response) {
+                        // Convert the string response to JSON
+                        connectionSettings = JSON.parse(response).value || false;
+
+                        // first check if settings have been configured
+                        if (connectionSettings && connectionSettings.url && connectionSettings.username && connectionSettings.apiKey) {
+                            // if things look in order, we attempt to look for external links connected to the issue (from inside Jira)
+                            getItemsLinkedToIssue();
+                        } else {
+                            // show a message to user that the addon needs to be properly configured
+                            app.message = "The add-on isn't fully configured. Please go to Settings > Add-ons > Manage add-ons > SpiraTest, and click 'Configure'";
+                            app.messageClasses = "aui-message aui-message-error";
+                        }
+                    },
+                    error: function(xhr, statusText, errorThrown){
+                        console.error(arguments);
+                        // if can't connect to Jira settings, show light touch message
+                        app.message = "The add-on isn't fully configured. Please go to Settings > Add-ons > Manage add-ons > SpiraTest, and click 'Configure'";
+                        app.messageClasses = "aui-message aui-message-error";
+                    }
+                });
+
+
+
+                // first, get remoteLinks on Jira's system
+                // then, parse those links to see if any are likely from SpiraTest
+                // next, check Spira remoteLinks to see if we only have requirements, or incidents too
+                // this issue will only be a "requirement" if it only links to requirements in SpiraTest
+                // only if we think it is a requirement do we send the query to SpiraTest and attempt to display test coverage
+                function getItemsLinkedToIssue() {
+                    // retrieve all remote links registered to this specific issue    
+                    AP.request({
+                        url: '/rest/api/2/issue/' + issueKey + '/remotelink',
+                        success: function(response) {
+                            // parse response to see if any links match Spira's URL pattern for requirements or incidents
+                            var spiraLinks = getLinkedArtifacts(response);
+
+                            // if they do, we have linked Spira items
+                            if (spiraLinks) {
+                                // check to see if we have any incidents in the links list - if we do that means we are on an incident issue, not a requirement issue
+                                var linksContainIncident = spiraLinks.filter(function(obj) { return obj.artifactType == "Incident" }).length > 0;
+                                if (linksContainIncident) {
+                                    app.message = "We don't show test data here yet. Tell us what you'd like to see at sales@inflectra.com";
+                                    app.messageClasses = "spira-message-subtle";
+                                
+                                // if we are on a requirement we attempt to retrieve info about it
+                                } else {
+                                    // we have an array, so need the 0th item
+                                    // we could have more than one linked requirement, but this would be due to a bad config by user, so don't treat it differently
+                                    var spiraRequirement = spiraLinks[0];
+                                    app.linkToSpiraArtifact = spiraRequirement.url;
+
+                                    var getSpiraRequirementUrl = connectionSettings.url + "/services/v5_0/RestService.svc/projects/" + spiraRequirement.projectId + "/requirements/" + spiraRequirement.requirementId;
+
+                                    axios.get(getSpiraRequirementUrl, {
+                                        params: {
+                                            "username": connectionSettings.username,
+                                            "api-key": connectionSettings.apiKey
+                                        }
+                                    })
+                                    .then(function(response) {
+                                        // if there are any linked tests to the RQ we apply the data from the response to the vue model to render
+                                        if (response.data && response.data.CoverageCountTotal) {
+                                            app.showData = true;
+                                            app.blocked = response.data.CoverageCountBlocked;
+                                            app.caution = response.data.CoverageCountCaution;
+                                            app.failed = response.data.CoverageCountFailed;
+                                            app.passed = response.data.CoverageCountPassed;
+                                            app.total = response.data.CoverageCountTotal;
+                                        // otherwise we have no test coverage
+                                        } else {
+                                            app.message = "Not covered by any tests";
+                                        }
+                                    })
+                                    // if can't connect to spira, log error and show message
+                                    .catch(function(error) {
+                                        app.message = "Could not connect to SpiraTest: see the console for details (tip: double check the add-on configuration)";
+                                        app.messageClasses = "spira-message-subtle";
+                                        console.error("Error fetching data from SpiraTest: ", error);
+                                    });
+                                }
+                            // if we don't have any linked requirements from Jira to Spira show relevant message
+                            } else {
+                                app.message = "Not linked to SpiraTest";
+                                app.messageClasses = "spira-message-subtle";
+                            }
+                        },
+                        error: function(xhr, statusText, errorThrown){
+                            console.error(arguments);
+                            // if can't connect to Jira settings, show light touch message
+                            app.message = "Sorry, we can't connect to Jira: see the console for details";
+                            app.messageClasses = "spira-message-subtle";
+                        }
+                    });
+                }
+                
+                function getLinkedArtifacts(response) {
+                    var regexCheck = /([0-9]+?)\/(Requirement|Incident)\/([0-9]+?)\.aspx$/;
+                    var spiraLinks = JSON.parse(response).map(function(x) {
+                        return x.object.url;
+                    }).filter(function(y) {
+                        return regexCheck.test(y);
+                    }).map(function(link) {
+                        var regexParts = regexCheck.exec(link);
+                        return {
+                            url: link,
+                            fragment: regexParts[0],
+                            projectId: regexParts[1],
+                            artifactType: regexParts[2],
+                            requirementId: regexParts[3]
+                        };
+                    })
+                    return spiraLinks.length ? spiraLinks : false;                    
+                }
+            }
+        })();
+    </script>
+ </body>
+</html>

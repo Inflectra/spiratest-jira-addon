@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="//aui-cdn.atlassian.com/aui-adg/5.9.12/css/aui.min.css" media="all">
+</head>
+<!-- this specific nested divs follow Jira design guidelines -->
+<body style="background: white">
+    <section id="content" class="ac-content">
+        <div class="aui-page-panel">
+            <div class="aui-page-panel-inner">
+                <section class="aui-page-panel-content">
+                    <div class="aui-page-header">
+                        <div class="aui-page-header-main">
+                            <h2>SpiraTest Connection Settings</h2>
+                        </div>
+                    </div>
+                    <div class="aui-message aui-message-info" style="max-width: 40em">
+                        <p class="title">
+                            <strong>Make Sure You Are Using SpiraTest 5.0 or Later</strong>
+                        </p>
+                        <p>
+                            This add-on connects to version 5.0+ of SpiraTest (or SpiraTeam, or SpiraPlan). You will also need to configure the data-sync between SpiraTest and Jira. This is done from within SpiraTest and you can read more about that <a href="https://www.inflectra.com/Documents/SpiraTestPlanTeam%20External%20Bug%20Tracking%20Integration%20Guide.pdf" title="SpiraTest External Bug Tracking Integration Guide">on our website</a>.
+                        </p>
+                    </div>
+                    <form class="aui" id="config-form">
+                        <div class="field-group">
+                            <label for="input-url">SpiraTest URL<span class="aui-icon icon-required">required</span></label>
+                            <input 
+                                class="text" 
+                                id="input-url" 
+                                placeholder="https://my-site.spiraservice.net"
+                                type="text"
+                                v-model="url" 
+                                >
+                            <div class="description">For Jira to access SpiraTest it must be publicly accessible</div>
+                        </div>
+                        <div class="field-group">
+                            <label for="input-username">Username<span class="aui-icon icon-required">required</span></label>
+                            <input 
+                                class="text" 
+                                id="input-username" 
+                                placeholder="fredbloggs"
+                                type="text"
+                                v-model="username" 
+                                >
+                        </div>
+                        <div class="field-group">
+                            <label for="input-api-key">API key / RSS Token<span class="aui-icon icon-required">required</span></label>
+                            <input 
+                                class="text" 
+                                id="input-api-key" 
+                                placeholder="{XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX}"
+                                type="text"
+                                v-model="apiKey" 
+                                >
+                        </div>
+                        <div class="buttons-container">
+                            <div class="buttons">
+                                <input 
+                                    class="button submit" 
+                                    type="button" 
+                                    value="Save" 
+                                    v-on:click="saveConnectionSettings"
+                                    >
+                            </div>
+                        </div>
+
+                        <div 
+                            v-bind:class="[isSaveSuccess ? 'aui-message-success' : 'aui-message-error', 'aui-message']"
+                            v-if="message"
+                            >
+                            <p>{{message}}</p>
+                        </div>
+                    </form>
+                    
+                </section>
+            </div>
+        </div>
+    </section>
+
+
+
+    <!-- load the vue library. -->
+    <script src="https://cdn.jsdelivr.net/npm/vue"></script>
+
+    <script id="connect-loader" data-options="sizeToParent:true;margin:true">
+        (function() {
+            // loads up the Atlassian core JS (all.js)
+            function getUrlParameter(name) {
+                name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+                var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+                var results = regex.exec(location.search);
+                return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+            };
+            var baseUrl = getUrlParameter('xdm_e') + getUrlParameter('cp');
+            var options = document.getElementById('connect-loader').getAttribute('data-options');
+
+            var script = document.createElement("script");
+            script.src = baseUrl + '/atlassian-connect/all.js';
+
+            if(options) {
+                script.setAttribute('data-options', options);
+            }
+            script.onreadystatechange = function () {
+                if (this.readyState == 'complete') {
+                    main();
+                }
+            };
+            script.onload = main;
+            document.getElementsByTagName("head")[0].appendChild(script);
+
+
+
+            // page specific js logic
+            function main() {
+                // Vue app for showing and getting data from the form
+                var app = new Vue({
+                    el: '#config-form',
+                    data: {
+                        url: '',
+                        username: '',
+                        apiKey: '',
+                        isSaveSuccess: false,
+                        message: ''
+                    },
+                    // once vue is mounted we then perform the ajax request to get any existing field info. This ensures vue model properly receives the data
+                    mounted() {
+                        // AP.request is an Atlassian function, which is part of the all.js library referenced above
+                        // here we are using it for ajax calls. It handles authentication and cross iframe data management for us
+                        AP.request({
+                            // here we are GETting an addon specific blob from Jira. "spiratest" is the key used to define this addon. "connectionSettings" is the arbitrary name we're using to define the information we save / access
+                            url: '/rest/atlassian-connect/1/addons/spiratest/properties/connectionSettings',
+                            success: function(response) {
+                                // Convert the string response to JSON and then update the vue model to display any saved values
+                                var connectionSettings = JSON.parse(response).value || false;
+                                if (connectionSettings) {
+                                    app.url = connectionSettings.url || "";
+                                    app.username = connectionSettings.username || "";
+                                    app.apiKey = connectionSettings.apiKey || "";
+                                }
+                            },
+                            error: function(xhr, statusText, errorThrown){
+                                console.error(arguments);
+                            }
+                        });
+                    },
+                    
+                    methods: {
+                        // on clicking save on the form, we want to save the vue model to Jira app settings
+                        saveConnectionSettings: function() {
+                            AP.request({
+                                // here we are updating the addon specific blob from Jira. "spiratest" is the key used to define this addon. "connectionSettings" is the arbitrary name we're using to define the information we save / access
+                                url: '/rest/atlassian-connect/1/addons/spiratest/properties/connectionSettings',
+                                contentType: "application/json",
+                                type: 'PUT',
+                                // using a normal object for "data" below resulted in an error from Jira, but making it a string and setting processData to false fixed it
+                                data: '{"url": "' + app.url + '", "username": "' + app.username + '", "apiKey": "' + app.apiKey + '"}',
+                                processData: false,
+                                success: function(response) {
+                                    // show success message - just update vue model and let vue logic (in the html) handle display
+                                    app.isSaveSuccess = true;
+                                    app.message = "Settings successfully saved";
+                                },
+                                error: function(xhr, statusText, errorThrown){
+                                    // show error message - just update vue model and let vue logic (in the html) handle display
+                                    app.message = "We're really sorry, there was a problem connecting to Jira. Please check the console log for more information";
+                                    console.error(arguments);
+                                }
+                            });
+                        }
+                    }
+                })
+            }
+        })();
+    </script>
+</body>
+</html>
