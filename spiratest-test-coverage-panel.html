@@ -8,6 +8,7 @@
         <template v-if="showData">
             <a
                 class="aui-lozenge spira-coverage"
+                target="_blank"
                 v-bind:href="linkToSpiraArtifact"
                 v-if="total"
                 >
@@ -63,47 +64,21 @@
     </style>
 
 
+    <!-- load the core atlassian library -->
+    <script src="https://connect-cdn.atl-paas.net/all.js"></script>
 
     <!-- load the vue and axios library - latter used to perform Ajax calls. -->
-    <script src="https://cdn.jsdelivr.net/npm/vue"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@3.1.2"></script>
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
 
 
 
     <script id="connect-loader">
         (function() {
-            // loads up the Atlassian core JS (all.js)
-            function getUrlParameter(name) {
-                name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
-                var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
-                var results = regex.exec(location.search);
-                return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
-            };
-            var baseUrl = getUrlParameter('xdm_e') + getUrlParameter('cp');
-            var options = document.getElementById('connect-loader').getAttribute('data-options');
-
-            var script = document.createElement("script");
-            script.src = baseUrl + '/atlassian-connect/all.js';
-
-            if(options) {
-                script.setAttribute('data-options', options);
-            }
-            script.onreadystatechange = function () {
-                if (this.readyState == 'complete') {
-                    main();
-                }
-            };
-            script.onload = main;
-            document.getElementsByTagName("head")[0].appendChild(script);
-
-
-
-
-
             // page specific js logic
             function main() {
                 // set up the vue model and link it to the main content of the panel
-                var app = new Vue({
+                var app = Vue.createApp({
                     el: '#content',
                     data: {
                         blocked: 0,
@@ -121,8 +96,17 @@
 
 
                 //Getting project and issue key params from host URL query string
-                var issueKey = getUrlParameter("issueKey");
-                var projectKey = getUrlParameter("projectKey");
+				//console.log(JIRA.Issue);
+				var issueKey;
+				var projectKey;
+                AP.context.getContext(function(response){
+					  issueKey = response.jira.issue.key;
+					  projectKey = response.jira.project.key;
+					});
+				
+				
+				//var issueKey = getUrlParameter("issueKey");
+                //var projectKey = getUrlParameter("projectKey");
                 
                 //get stored SpiraTest API Acsess settings from JIRA
                 var connectionSettings = false;
@@ -248,6 +232,8 @@
                     return spiraLinks.length ? spiraLinks : false;                    
                 }
             }
+
+            main();
         })();
     </script>
  </body>

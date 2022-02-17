@@ -79,42 +79,18 @@
     </section>
 
 
+    <!-- load the core atlassian library -->
+    <script src="https://connect-cdn.atl-paas.net/all.js"></script>
 
     <!-- load the vue library. -->
     <script src="https://cdn.jsdelivr.net/npm/vue@3.1.2"></script>
 
     <script id="connect-loader" data-options="sizeToParent:true;margin:true">
         (function() {
-            // loads up the Atlassian core JS (all.js)
-            function getUrlParameter(name) {
-                name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
-                var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
-                var results = regex.exec(location.search);
-                return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
-            };
-            var baseUrl = getUrlParameter('xdm_e') + getUrlParameter('cp');
-            var options = document.getElementById('connect-loader').getAttribute('data-options');
-
-            var script = document.createElement("script");
-            script.src = baseUrl + '/atlassian-connect/all.js';
-
-            if(options) {
-                script.setAttribute('data-options', options);
-            }
-            script.onreadystatechange = function () {
-                if (this.readyState == 'complete') {
-                    main();
-                }
-            };
-            script.onload = main;
-            document.getElementsByTagName("head")[0].appendChild(script);
-
-
-
             // page specific js logic
             function main() {
                 // Vue app for showing and getting data from the form
-                var app = new Vue({
+                var app = Vue.createApp({
                     el: '#config-form',
                     data: {
                         url: '',
@@ -171,6 +147,8 @@
                     }
                 })
             }
+        
+            main();
         })();
     </script>
 </body>
