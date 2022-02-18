@@ -91,16 +91,18 @@
             function main() {
                 // Vue app for showing and getting data from the form
                 var app = Vue.createApp({
-                    el: '#config-form',
-                    data: {
-                        url: '',
-                        username: '',
-                        apiKey: '',
-                        isSaveSuccess: false,
-                        message: ''
+                    data() {
+                        return {
+                            url: '',
+                            username: '',
+                            apiKey: '',
+                            isSaveSuccess: false,
+                            message: ''
+                        }
                     },
                     // once vue is mounted we then perform the ajax request to get any existing field info. This ensures vue model properly receives the data
                     mounted() {
+                        var that = this;
                         // AP.request is an Atlassian function, which is part of the all.js library referenced above
                         // here we are using it for ajax calls. It handles authentication and cross iframe data management for us
                         AP.request({
@@ -110,9 +112,9 @@
                                 // Convert the string response to JSON and then update the vue model to display any saved values
                                 var connectionSettings = JSON.parse(response).value || false;
                                 if (connectionSettings) {
-                                    app.url = connectionSettings.url || "";
-                                    app.username = connectionSettings.username || "";
-                                    app.apiKey = connectionSettings.apiKey || "";
+                                    that.url = connectionSettings.url || "";
+                                    that.username = connectionSettings.username || "";
+                                    that.apiKey = connectionSettings.apiKey || "";
                                 }
                             },
                             error: function(xhr, statusText, errorThrown){
@@ -124,28 +126,30 @@
                     methods: {
                         // on clicking save on the form, we want to save the vue model to Jira app settings
                         saveConnectionSettings: function() {
+                            var that = this;
                             AP.request({
                                 // here we are updating the addon specific blob from Jira. "spiratest" is the key used to define this addon. "connectionSettings" is the arbitrary name we're using to define the information we save / access
                                 url: '/rest/atlassian-connect/1/addons/spiratest/properties/connectionSettings',
                                 contentType: "application/json",
                                 type: 'PUT',
                                 // using a normal object for "data" below resulted in an error from Jira, but making it a string and setting processData to false fixed it
-                                data: '{"url": "' + app.url + '", "username": "' + app.username + '", "apiKey": "' + app.apiKey + '"}',
+                                data: '{"url": "' + that.url + '", "username": "' + that.username + '", "apiKey": "' + that.apiKey + '"}',
                                 processData: false,
                                 success: function(response) {
                                     // show success message - just update vue model and let vue logic (in the html) handle display
-                                    app.isSaveSuccess = true;
-                                    app.message = "Settings successfully saved";
+                                    that.isSaveSuccess = true;
+                                    that.message = "Settings successfully saved";
                                 },
                                 error: function(xhr, statusText, errorThrown){
                                     // show error message - just update vue model and let vue logic (in the html) handle display
-                                    app.message = "We're really sorry, there was a problem connecting to Jira. Please check the console log for more information";
+                                    that.message = "We're really sorry, there was a problem connecting to Jira. Please check the console log for more information";
                                     console.error(arguments);
                                 }
                             });
                         }
                     }
-                })
+                });
+                app.mount("#config-form");
             }
         
             main();
