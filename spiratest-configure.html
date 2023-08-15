@@ -19,7 +19,10 @@
                             <strong>Make Sure You Are Using SpiraTest 5.0 or Later</strong>
                         </p>
                         <p>
-                            This add-on connects to version 5.0+ of SpiraTest (or SpiraTeam, or SpiraPlan). You will also need to configure the data-sync between SpiraTest and Jira. This is done from within SpiraTest and you can read more about that <a href="https://www.inflectra.com/Documents/SpiraTestPlanTeam%20External%20Bug%20Tracking%20Integration%20Guide.pdf" title="SpiraTest External Bug Tracking Integration Guide">on our website</a>.
+                            This add-on connects to version 5.0+ of SpiraTest (or SpiraTeam, or SpiraPlan). You will also need to configure the data-sync between SpiraTest and Jira. This is done from within SpiraTest and you can read more about that <a href="http://spiradoc.inflectra.com/External-Bug-Tracking-Integration/Using-SpiraTeam-with-Jira-Cloud/" title="Using SpiraPlan with Jira Cloud">in our documentation</a>.
+                        </p>
+                        <p>
+                            <strong>We strongly recommend the username for the integration has read-only permissions in SpiraTest.</strong>
                         </p>
                     </div>
                     <form class="aui" id="config-form">
@@ -43,6 +46,7 @@
                                 type="text"
                                 v-model="username" 
                                 >
+                            <div class="description">Make sure the user has read-only permissions in SpiraTest (no write permissions)</div>
                         </div>
                         <div class="field-group">
                             <label for="input-api-key">API key / RSS Token<span class="aui-icon icon-required">required</span></label>
@@ -127,6 +131,13 @@
                         // on clicking save on the form, we want to save the vue model to Jira app settings
                         saveConnectionSettings: function() {
                             var that = this;
+
+                            //Do not let the username be the root admin
+                            if (that.username.trim() == "administrator") {
+                                that.message = "You cannot use that username. Please enter a username with read only permissions to SpiraTest."
+                                return;
+                            }
+
                             AP.request({
                                 // here we are updating the addon specific blob from Jira. "spiratest" is the key used to define this addon. "connectionSettings" is the arbitrary name we're using to define the information we save / access
                                 url: '/rest/atlassian-connect/1/addons/spiratest/properties/connectionSettings',
